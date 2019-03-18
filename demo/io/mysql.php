@@ -32,14 +32,22 @@ class AysMysql{
     }
 
     public function execute($id, $username){
-        $this->db->connect($this->dbConfig, function ($db, $result){
+        $this->db->connect($this->dbConfig, function ($db, $result) use($id, $username){
             if(!$result){
                 var_dump($db->connect_error);
             }
 
-            $sql = "select * from test where id=1";
+//            $sql = "select * from test where id=1";
+            $sql = "update test set `username` = '".$username."' where id=".$id;
+            var_dump($sql);
             $db->query($sql, function ($db, $result){
-                var_dump($result);
+                if($result === false){
+                    var_dump($db->error);
+                }elseif ($result === true){
+                    var_dump($db->affected_rows);
+                }else{
+                    var_dump($result);
+                }
                 $db->close();
             });
         });
@@ -48,4 +56,6 @@ class AysMysql{
 }
 
 $obj = new AysMysql();
-$obj->execute(1, 'singwa');
+$flag = $obj->execute(1, 'singwa_1111');
+var_dump($flag).PHP_EOL;
+echo "start".PHP_EOL;
