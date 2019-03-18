@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>web socket测试</h1>
+<script type="text/javascript">
+    var wsUrl = "ws://39.98.214.192:8812";
+    var ws = new WebSocket(wsUrl);
+
+    //实例化对象的onopen属性
+    ws.onopen = function (evt) {
+        ws.send("hello-sinwa");
+        console.log("connected-swoole-success");
+    }
+
+    //实例化 onmessage
+    ws.onmessage = function (evt) {
+        console.log("ws-server-return-data"+evt.data);
+    }
+
+    ws.onclose = function (evt) {
+        console.log("close")
+    }
+
+    ws.onerror = function (evt, e) {
+        console.log("error:" + evt.data)
+    }
+
+</script>
+</body>
+</html>
