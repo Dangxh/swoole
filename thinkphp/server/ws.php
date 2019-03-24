@@ -1,4 +1,6 @@
 <?php
+use app\common\lib\common;
+use app\common\lib\redis\Predis;
 
 /**
  * Created by PhpStorm.
@@ -6,27 +8,29 @@
  * Date: 2019/3/22
  * Time: 1:21
  */
-class Http
+class Ws
 {
     const HOST = "0.0.0.0";
     const PORT = 8811;
 
-    public $http = null;
+    public $ws = null;
     public function __construct()
     {
-        $this->http = new swoole_http_server(self::HOST, self::PORT);
-        $this->http->set([
+        $this->ws = new swoole_websocket_server(self::HOST, self::PORT);
+        $this->ws->set([
             'enable_static_handler' => true,
             'document_root' => "/root/swoole/thinkphp/public/static",
             'worker_num' => 4,
             'task_worker_num' =>4,
         ]);
-        $this->http->on("workerstart", [$this, 'onWorkerStart']);
-        $this->http->on("request", [$this, 'onRequest']);
-        $this->http->on("task", [$this, 'onTask']);
-        $this->http->on("finish", [$this, 'onFinish']);
-        $this->http->on("close", [$this, 'onClose']);
-        $this->http->start();
+        $this->ws->on("open", [$this, 'onOpen']);
+        $this->ws->on("message", [$this, 'onMessage']);
+        $this->ws->on("workerstart", [$this, 'onWorkerStart']);
+        $this->ws->on("request", [$this, 'onRequest']);
+        $this->ws->on("task", [$this, 'onTask']);
+        $this->ws->on("finish", [$this, 'onFinish']);
+        $this->ws->on("close", [$this, 'onClose']);
+        $this->ws->start();
     }
 
     public function onWorkerStart($server, $worker_id){
@@ -61,8 +65,14 @@ class Http
                 $_POST[$k] = $v;
             }
         }
+        $_FILES = [];
+        if(isset($request->files)){
+            foreach ($request->files as $k => $v){
+                $_FILES[$k] = $v;
+            }
+        }
 
-        $_POST['http_server'] = $this->http;
+        $_POST['http_server'] = $this->ws;
 
         ob_start();
         // 执行应用并响应
@@ -80,11 +90,33 @@ class Http
     }
 
     /**
+     * 监听ws连接事件
+     * @param $ws
+     * @param $request
+     */
+    public function onOpen($ws, $request){
+        //fd redis
+        Predis::getInstance()->sAdd('live', $request->fd);
+//        var_dump($request->fd);
+    }
+
+    /**
+     * 监听ws消息事件
+     * @param $ws
+     * @param $frame
+     */
+    public function onMessage($ws, $frame){
+        echo "ser-push-message:{$frame->data}\n";
+        $ws->push($frame->fd, "server-push:".date("Y-m-d H:i:s"));
+    }
+
+    /**
      * 监听关闭事件
      * @param $ws
      * @param $fd
      */
     public function onClose($ws, $fd){
+        Predis::getInstance()->sRem('live', $fd);
         echo "clientid:{$fd}\n";
     }
 
@@ -102,4 +134,4 @@ class Http
     }
 }
 
-new Http();
+new Ws();
